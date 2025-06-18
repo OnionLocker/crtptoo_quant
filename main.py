@@ -1,10 +1,89 @@
-try:
-    import backtrader
-    import ccxt
-    import pandas as pd
-    import numpy as np
-    import dotenv
-    import requests
-    print("pl")
-except ImportError as e:
-    print("fali",e)
+from data_loader import download_crypto_data
+from strategy import MovingAverageCrossStrategy
+import matplotlib
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import warnings
+setattr(mdates, 'warnings', warnings)
+import backtrader as bt
+import os
+from utils import standardize_ohlcv_df
+from datetime import datetime
+from optimizer import run_optimization, plot_roi_heatmap
+
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 设置中文黑体
+plt.rcParams['axes.unicode_minus'] = False   # 解决负号显示问题
+
+# 设置环境变量，让 yfinance 自动使用代理
+os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
+os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
+
+# 下载数据
+df = download_crypto_data()
+
+# 解开多重列名
+df.columns = df.columns.get_level_values(0)
+df = standardize_ohlcv_df(df)
+
+# 转为 backtrader 数据格式
+data = bt.feeds.PandasData(
+    dataname=df,
+    datetime=None,
+    open='open',
+    high='high',
+    low='low',
+    close='close',
+    volume='volume',
+    openinterest=-1
+)
+
+# 创建 backtrader 引擎
+cerebro = bt.Cerebro()
+cerebro.adddata(data)
+cerebro.addstrategy(MovingAverageCrossStrategy)
+initial_cash = 100000
+cerebro.broker.setcash(initial_cash)
+result = cerebro.run()
+final_cash = cerebro.broker.getvalue()
+
+# 计算收益率
+roi = (final_cash - initial_cash) / initial_cash * 100
+print(f"回测起始资金: {initial_cash:.2f}")
+print(f"回测结束资金: {final_cash:.2f}")
+print(f"策略收益率: {roi:.2f}%")
+
+# 提取策略结果
+strategy = result[0]
+buy_dates, buy_prices = zip(*strategy.buy_signals) if strategy.buy_signals else ([], [])
+sell_dates, sell_prices = zip(*strategy.sell_signals) if strategy.sell_signals else ([], [])
+
+# 绘图
+# plt.figure(figsize=(14, 8))
+# plt.plot(df.index, df['close'], label='Close Price', alpha=0.7)
+# plt.scatter(buy_dates, buy_prices, marker='^', color='green', label='Buy', s=100)
+# plt.scatter(sell_dates, sell_prices, marker='v', color='red', label='Sell', s=100)
+# plt.title('BTC 双均线策略买卖点')
+# plt.xlabel('Date')
+# plt.ylabel('Price')
+# plt.legend()
+# plt.grid()
+# plt.tight_layout()
+
+# # 自动构建保存路径
+# timestamp = datetime.now()
+# date_str = timestamp.strftime('%Y%m%d')
+# time_str = timestamp.strftime('%Y-%m-%d_%H-%M-%S')
+
+# folder_path = os.path.join(os.path.dirname(__file__), 'images', date_str)
+# os.makedirs(folder_path, exist_ok=True)
+
+# filename = f'report_{time_str}.png'
+# save_path = os.path.join(folder_path, filename)
+
+# plt.savefig(save_path, dpi=300)
+# print(f'图像已保存为 {save_path}')
+# plt.show()
+
+results = run_optimization(df, short_range=range(5, 21, 5), long_range=range(25, 61, 5))
+print(results.head().to_string(index=False))
+plot_roi_heatmap(results)
