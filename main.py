@@ -46,9 +46,17 @@ data = bt.feeds.PandasData(
 cerebro = bt.Cerebro()
 cerebro.adddata(data)
 cerebro.addstrategy(MovingAverageRSIStrategy)
+# 添加风控分析器
+# 添加风险分析器和统计器
+cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe', timeframe=bt.TimeFrame.Days)
+cerebro.addanalyzer(bt.analyzers.DrawDown, _name='drawdown')
+cerebro.addanalyzer(bt.analyzers.Returns, _name='returns')
+cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='trades')
 initial_cash = 100000
 cerebro.broker.setcash(initial_cash)
 result = cerebro.run()
+
+
 
 final_cash = cerebro.broker.getvalue()
 
@@ -62,6 +70,26 @@ print(f"策略收益率: {roi:.2f}%")
 strategy = result[0]
 buy_dates, buy_prices = zip(*strategy.buy_signals) if strategy.buy_signals else ([], [])
 sell_dates, sell_prices = zip(*strategy.sell_signals) if strategy.sell_signals else ([], [])
+
+# 输出风险指标
+# 输出风险与统计指标
+sharpe = strategy.analyzers.sharpe.get_analysis().get('sharperatio', 'N/A')
+drawdown = strategy.analyzers.drawdown.get_analysis()
+returns = strategy.analyzers.returns.get_analysis()
+trades = strategy.analyzers.trades.get_analysis()
+
+max_dd = drawdown.max.drawdown if drawdown else 'N/A'
+annual_return = returns.get('rnorm100', 'N/A')
+
+total_trades = trades.total.closed if 'total' in trades and 'closed' in trades.total else 'N/A'
+won_trades = trades.won.total if 'won' in trades and 'total' in trades.won else 'N/A'
+win_rate = (won_trades / total_trades * 100) if total_trades and total_trades != 0 else 'N/A'
+
+print(f"夏普比率: {sharpe}")
+print(f"最大回撤: {max_dd:.2f}%")
+print(f"年化收益率: {annual_return:.2f}%")
+print(f"总交易次数: {total_trades}")
+print(f"胜率: {win_rate:.2f}%")
 
 # 绘图
 plt.figure(figsize=(14, 8))
