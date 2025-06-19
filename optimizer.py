@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # optimizer.py
 import backtrader as bt
 import pandas as pd

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import ccxt
 import pandas as pd
 import time
@@ -15,14 +16,14 @@ def fetch_binance_ohlcv(symbol='BTC/USDT', timeframe='1d', since_days=365):
     )
 
     all_ohlcv = []
-    limit = 500  # 最大一次获取 500 根K线
+    limit = 500  # 朢�大一次获叄1�7 500 根K纄1�7
     while True:
         ohlcv = binance.fetch_ohlcv(symbol, timeframe, since=since_timestamp, limit=limit)
         if not ohlcv:
             break
         all_ohlcv += ohlcv
         since_timestamp = ohlcv[-1][0] + 1
-        time.sleep(0.3)  # 避免被限流
+        time.sleep(0.3)  # 避免被限浄1�7
         if len(ohlcv) < limit:
             break
 

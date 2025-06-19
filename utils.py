@@ -1,4 +1,5 @@
 # utils.py
+# -*- coding: utf-8 -*-
 import pandas as pd
 
 def standardize_ohlcv_df(df):

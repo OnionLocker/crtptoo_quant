@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from data_loader import download_crypto_data
 from strategy import MovingAverageCrossStrategy
 import matplotlib
@@ -10,13 +11,17 @@ import os
 from utils import standardize_ohlcv_df
 from datetime import datetime
 from optimizer import run_optimization, plot_roi_heatmap
+from strategy_rsi import MovingAverageRSIStrategy
 
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 设置中文黑体
 plt.rcParams['axes.unicode_minus'] = False   # 解决负号显示问题
 
-# 设置环境变量，让 yfinance 自动使用代理
-os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
-os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
+USE_PROXY = False  # 改成 True 才启用
+
+if USE_PROXY:
+    os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
+    os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
+
 
 # 下载数据
 df = download_crypto_data()
@@ -40,10 +45,11 @@ data = bt.feeds.PandasData(
 # 创建 backtrader 引擎
 cerebro = bt.Cerebro()
 cerebro.adddata(data)
-cerebro.addstrategy(MovingAverageCrossStrategy)
+cerebro.addstrategy(MovingAverageRSIStrategy)
 initial_cash = 100000
 cerebro.broker.setcash(initial_cash)
 result = cerebro.run()
+
 final_cash = cerebro.broker.getvalue()
 
 # 计算收益率
@@ -58,16 +64,22 @@ buy_dates, buy_prices = zip(*strategy.buy_signals) if strategy.buy_signals else 
 sell_dates, sell_prices = zip(*strategy.sell_signals) if strategy.sell_signals else ([], [])
 
 # 绘图
-# plt.figure(figsize=(14, 8))
-# plt.plot(df.index, df['close'], label='Close Price', alpha=0.7)
-# plt.scatter(buy_dates, buy_prices, marker='^', color='green', label='Buy', s=100)
-# plt.scatter(sell_dates, sell_prices, marker='v', color='red', label='Sell', s=100)
-# plt.title('BTC 双均线策略买卖点')
-# plt.xlabel('Date')
-# plt.ylabel('Price')
-# plt.legend()
-# plt.grid()
-# plt.tight_layout()
+plt.figure(figsize=(14, 8))
+plt.plot(df.index, df['close'], label='Close Price', color='black', linewidth=1)
+
+# 画买入信号点
+if buy_dates:
+    plt.scatter(buy_dates, buy_prices, marker='^', color='green', label='Buy', zorder=5)
+# 画卖出信号点
+if sell_dates:
+    plt.scatter(sell_dates, sell_prices, marker='v', color='red', label='Sell', zorder=5)
+
+plt.title("回测价格与交易信号图")
+plt.xlabel("日期")
+plt.ylabel("价格")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
 
 # # 自动构建保存路径
 # timestamp = datetime.now()
@@ -82,8 +94,9 @@ sell_dates, sell_prices = zip(*strategy.sell_signals) if strategy.sell_signals e
 
 # plt.savefig(save_path, dpi=300)
 # print(f'图像已保存为 {save_path}')
-# plt.show()
+plt.show()
 
-results = run_optimization(df, short_range=range(5, 21, 5), long_range=range(25, 61, 5))
-print(results.head().to_string(index=False))
-plot_roi_heatmap(results)
+# 热点图
+# results = run_optimization(df, short_range=range(5, 21, 5), long_range=range(25, 61, 5))
+# print(results.head().to_string(index=False))
+# plot_roi_heatmap(results)

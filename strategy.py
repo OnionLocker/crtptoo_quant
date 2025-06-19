@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import backtrader as bt
 
 class MovingAverageCrossStrategy(bt.Strategy):

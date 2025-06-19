@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 import yfinance as yf
 import pandas as pd
 import os
 # 设置环境变量，让 yfinance 自动使用代理
-os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
-os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
+# os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
+# os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
 
 def download_crypto_data(symbol='BTC-USD', start='2015-01-01', end='2024-01-01', interval='1d'):
     """
@@ -15,6 +16,9 @@ def download_crypto_data(symbol='BTC-USD', start='2015-01-01', end='2024-01-01',
     data = yf.download(symbol, start=start, end=end, interval=interval)
     data.dropna(inplace=True)
     data.reset_index(inplace=True)
+    if data.empty:
+        raise ValueError("下载失败，数据为空")
+    
     return data
 
 if __name__ == '__main__': # 调试
