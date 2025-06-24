@@ -6,7 +6,12 @@ import pandas as pd
 from datetime import datetime
 
 okx = ccxt.okx({
-    'enableRateLimit': True
+    'enableRateLimit': True,
+    'timeout': 10000,
+    'proxies': {
+        'http': 'socks5://127.0.0.1:7891',
+        'https': 'socks5://127.0.0.1:7891',
+    }
 })
 
 def load_okx_data(symbol='BTC/USDT', timeframe='1d', since_days=180):

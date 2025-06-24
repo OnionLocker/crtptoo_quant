@@ -38,7 +38,29 @@ os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
 okx = ccxt.okx({
     'enableRateLimit': True,
     'timeout': 10000,
+    'proxies': {
+        'http': 'http://127.0.0.1:7890',
+        'https': 'http://127.0.0.1:7890',
+    }
 })
 
 markets = okx.load_markets()
 print("成功加载市场数量：", len(markets))
+
+# import ccxt
+# import os
+
+# os.environ['ALL_PROXY'] = 'socks5://127.0.0.1:7890'  # Clash 默认支持 SOCKS5
+
+# okx = ccxt.okx({
+#     'enableRateLimit': True,
+#     'timeout': 10000,
+#     'proxies': {
+#         'http': 'socks5://127.0.0.1:7890',
+#         'https': 'socks5://127.0.0.1:7890',
+#     }
+# })
+
+# markets = okx.load_markets()
+# print("成功加载市场数量：", len(markets))
+
