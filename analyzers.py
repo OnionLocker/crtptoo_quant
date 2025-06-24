@@ -3,35 +3,47 @@
 
 def extract_trade_analysis(analyzers):
     stats = analyzers.getbyname("tradeanalyzer").get_analysis()
+    
+    total_trades = stats.get('total', {}).get('total', 0)
+    won_trades = stats.get('won', {}).get('total', 0)
+    lost_trades = stats.get('lost', {}).get('total', 0)
+    pnl_won = stats.get('won', {}).get('pnl', {}).get('avg') or 0
+    pnl_lost = stats.get('lost', {}).get('pnl', {}).get('avg') or 0
 
-    total = stats.total.closed if 'total' in stats and 'closed' in stats.total else 0
-    won = stats.won.total if 'won' in stats and 'total' in stats.won else 0
-    lost = stats.lost.total if 'lost' in stats and 'total' in stats.lost else 0
+    win_rate = (won_trades / total_trades) * 100 if total_trades > 0 else 0
 
-    win_rate = (won / total) * 100 if total > 0 else 0
-
-    pnl_won = stats.won.pnl.avg if 'won' in stats and 'pnl' in stats.won and stats.won.pnl.avg is not None else 0
-    pnl_lost = stats.lost.pnl.avg if 'lost' in stats and 'pnl' in stats.lost and stats.lost.pnl.avg is not None else 0
-
-    if pnl_lost != 0:
-        profit_factor = abs(pnl_won / pnl_lost)
+    if pnl_lost == 0:
+        if pnl_won > 0:
+            profit_factor = float('inf')
+        else:
+            profit_factor = None
     else:
-        profit_factor = None
+        profit_factor = abs(pnl_won / pnl_lost)
 
     return {
-        "total": total,
-        "won": won,
-        "lost": lost,
-        "win_rate": win_rate,
-        "profit_factor": profit_factor
+        '总交易次数': total_trades,
+        '盈利交易数': won_trades,
+        '亏损交易数': lost_trades,
+        '平均盈利': pnl_won,
+        '平均亏损': pnl_lost,
+        '胜率': win_rate,
+        '盈亏比（Profit Factor）': profit_factor
     }
 
 def analyze_results(results, analyzers, strategy_name):
     trade_stats = extract_trade_analysis(analyzers)
+    profit_factor = trade_stats.get('盈亏比（Profit Factor）')
+    if profit_factor is None:
+        profit_factor_str = 'N/A'
+    elif profit_factor == float('inf'):
+        profit_factor_str = '∞'
+    else:
+        profit_factor_str = round(profit_factor, 4)
+
     results.update({
-        'strategy_name': strategy_name,
-        'total_trades': trade_stats['total'],
-        'win_rate': round(trade_stats['win_rate'], 2),
-        'profit_factor': round(trade_stats['profit_factor'], 4) if trade_stats['profit_factor'] else 'N/A'
+        '策略名称': strategy_name,
+        '总交易次数': trade_stats.get('总交易次数', 0),
+        '胜率': round(trade_stats.get('胜率', 0), 2),
+        '盈亏比': profit_factor_str
     })
     return results

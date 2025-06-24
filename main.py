@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from data_loader import download_crypto_data
+from data_loader import load_data
 from strategy import MovingAverageCrossStrategy, MovingAverageRSIStrategy, MACDStrategy
 import matplotlib
 import matplotlib.dates as mdates
@@ -16,13 +16,6 @@ plt.style.use('seaborn-v0_8-darkgrid')
 
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 设置中文黑体
 plt.rcParams['axes.unicode_minus'] = False   # 解决负号显示问题
-
-USE_PROXY = False  # 改成 True 才启用
-
-if USE_PROXY:
-    os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
-    os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
-
 
 # 下载数据
 df = download_crypto_data()

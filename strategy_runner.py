@@ -29,9 +29,11 @@ class StrategyRunner:
         cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe')
         cerebro.addanalyzer(bt.analyzers.DrawDown, _name='drawdown')
         cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='tradeanalyzer')
+        cerebro.addanalyzer(bt.analyzers.Returns, _name='returns')
 
-        result = cerebro.run()[0]
+        strategies = cerebro.run()
+        strat = strategies[0]
         final_value = cerebro.broker.getvalue()
-        analyzers = result.analyzers
 
-        return analyze_results(self.strategy_cls, final_value, analyzers)
+        results = {'final_value': final_value}
+        return analyze_results(results, strat.analyzers, self.strategy_cls.__name__)
