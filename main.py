@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from data_loader import download_crypto_data
-from strategy import MovingAverageCrossStrategy
+from strategy import MovingAverageCrossStrategy, MovingAverageRSIStrategy, MACDStrategy
 import matplotlib
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -11,7 +11,8 @@ import os
 from utils import standardize_ohlcv_df
 from datetime import datetime
 from optimizer import run_optimization, plot_roi_heatmap
-from strategy_rsi import MovingAverageRSIStrategy
+import pandas as pd
+plt.style.use('seaborn-v0_8-darkgrid')
 
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 设置中文黑体
 plt.rcParams['axes.unicode_minus'] = False   # 解决负号显示问题
@@ -42,16 +43,25 @@ data = bt.feeds.PandasData(
     openinterest=-1
 )
 
+strategy_name = "macd"  # 或者 "ma", "rsi" 
+
 # 创建 backtrader 引擎
 cerebro = bt.Cerebro()
 cerebro.adddata(data)
-cerebro.addstrategy(MovingAverageRSIStrategy)
+if strategy_name == "ma":
+    cerebro.addstrategy(MovingAverageCrossStrategy)
+elif strategy_name == "rsi":
+    cerebro.addstrategy(MovingAverageRSIStrategy)
+elif strategy_name == "macd":
+    cerebro.addstrategy(MACDStrategy)
+
 # 添加风控分析器
 # 添加风险分析器和统计器
 cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe', timeframe=bt.TimeFrame.Days)
 cerebro.addanalyzer(bt.analyzers.DrawDown, _name='drawdown')
 cerebro.addanalyzer(bt.analyzers.Returns, _name='returns')
 cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='trades')
+cerebro.addanalyzer(bt.analyzers.TimeReturn, _name='timereturn')  # 资金曲线
 initial_cash = 100000
 cerebro.broker.setcash(initial_cash)
 result = cerebro.run()
@@ -122,7 +132,39 @@ plt.tight_layout()
 
 # plt.savefig(save_path, dpi=300)
 # print(f'图像已保存为 {save_path}')
+
+# === 提取资金曲线并绘制 ===
+returns_series = pd.Series(strategy.analyzers.timereturn.get_analysis())
+cum_returns = (1 + returns_series).cumprod()
+
+plt.figure(figsize=(12, 6))
+plt.plot(cum_returns, label='资金净值曲线')
+plt.title("策略资金曲线")
+plt.xlabel("时间")
+plt.ylabel("净值")
+plt.grid(True)
+plt.legend()
+
+# 资金曲线图
+date_str = pd.Timestamp.now().strftime('%Y%m%d')
+output_dir = os.path.join('output', date_str)
+os.makedirs(output_dir, exist_ok=True)
+plt.savefig(os.path.join(output_dir, 'equity_curve.png'), dpi=300)
 plt.show()
+
+# 盈亏比 = 平均盈利 / 平均亏损
+total_win = trades.won.pnl.get('total', 0)
+count_win = trades.won.total if trades.won else 0
+
+total_loss = abs(trades.lost.pnl.get('total', 0))
+count_loss = trades.lost.total if trades.lost else 0
+
+avg_win = total_win / count_win if count_win > 0 else 0
+avg_loss = total_loss / count_loss if count_loss > 0 else 0
+
+profit_factor = avg_win / avg_loss if avg_loss != 0 else 'N/A'
+print(f"盈亏比（Profit Factor）: {profit_factor}")
+
 
 # 热点图
 # results = run_optimization(df, short_range=range(5, 21, 5), long_range=range(25, 61, 5))
